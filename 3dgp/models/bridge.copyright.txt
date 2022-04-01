@@ -1,0 +1,14 @@
+THIS IS IMPORTANT INFORMATION ABOUT COPYRIGHT
+========================================
+
+The attached file "bridge.obj" is a copyrighted and non-free
+material. It is made available for you strictly as a part of this in-class
+exercise. You can only use this file for the purpose of finishing your
+in-class exercise software and achieving a pass. The license also allows
+you to use this file for other activities required by Kingston University
+but NOT FOR ANY OTHER PRIVATE OR COMMERCIAL USE.
+
+The license can be purchased at:
+http://www.turbosquid.com/3d-models/stone-bridge-3d-model/522576
+
+The cost of the license is $5.00, roughly equivalent to £3.80.
