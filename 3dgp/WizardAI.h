@@ -39,6 +39,23 @@ public:
 
 	void ChangeState(STATE newState, float time)
 	{
+		if (newState == state)
+			return;
+
+		state = newState;
+
+		switch (state)
+		{
+		case IDLE:
+			AnimateIdle(time);
+			break;
+		case YOU_SHALL_NOT_PASS:
+			AnimateYouShallNotPass(time);
+		}
+		
+
+
+
 		// TO DO: Implement this function
 		// Note - you will need current time (provided as a parameter) to start animations!
 	}

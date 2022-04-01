@@ -20,10 +20,17 @@ using namespace glm;
 // 3D Models
 C3dglTerrain terrain, river, road;
 C3dglModel lamp, bulb, bridge;
-C3dglModel wizard;		// change C3dglModel class to CWizardAI to address Task 10
+CWizardAI wizard;		// change C3dglModel class to CWizardAI to address Task 10
+//C3dglModel wizard;
 
 // Texture Ids
 GLuint idTexNone;	// white (neutral)
+GLuint idTexBridge;
+GLuint idTexBridgeNormal;
+GLuint idTexRiver;
+GLuint idTexGrass;
+GLuint idTexRoad;
+GLuint idTexRoadNormal;
 
 // GLSL Objects (Shader Program)
 C3dglProgram Program;
@@ -80,6 +87,7 @@ bool init()
 
 
 	// Textures
+	C3dglBitmap bm;
 	
 	// TO DO: load all needed textures, we only provide the white idTexNone
 
@@ -90,7 +98,57 @@ bool init()
 	BYTE bytes[] = { 255, 255, 255 };
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &bytes);
 
+	bm.Load("models/bridge.png", GL_RGBA);
+	if (!bm.GetBits()) return false;
 	
+	glGenTextures(1, &idTexBridge);
+	glBindTexture(GL_TEXTURE_2D, idTexBridge);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.GetWidth(), bm.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.GetBits());
+
+	bm.Load("models/bridge_normalmap.png", GL_RGBA);
+	if (!bm.GetBits()) return false;
+
+	glGenTextures(1, &idTexBridgeNormal);
+	glBindTexture(GL_TEXTURE_2D, idTexBridgeNormal);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.GetWidth(), bm.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.GetBits());
+
+	bm.Load("models/cobbled.png", GL_RGBA);
+	if (!bm.GetBits()) return false;
+
+	glGenTextures(1, &idTexRoad);
+	glBindTexture(GL_TEXTURE_2D, idTexRoad);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.GetWidth(), bm.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.GetBits());
+
+	bm.Load("models/cobbled_normalmap.png", GL_RGBA);
+	if (!bm.GetBits()) return false;
+
+	glGenTextures(1, &idTexRoadNormal);
+	glBindTexture(GL_TEXTURE_2D, idTexRoadNormal);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.GetWidth(), bm.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.GetBits());
+
+	bm.Load("models/grass.png", GL_RGBA);
+	if (!bm.GetBits()) return false;
+
+	glGenTextures(1, &idTexGrass);
+	glBindTexture(GL_TEXTURE_2D, idTexGrass);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.GetWidth(), bm.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.GetBits());
+
+	bm.Load("models/water.png", GL_RGBA);
+	if (!bm.GetBits()) return false;
+
+	glGenTextures(1, &idTexRiver);
+	glBindTexture(GL_TEXTURE_2D, idTexRiver);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bm.GetWidth(), bm.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bm.GetBits());
+
+	Program.SendUniform("texture0", 0);
+	Program.SendUniform("textureNormal", 1);
+
 	// setup ambient/emissive light & material
 	Program.SendUniform("lightAmbient.color", 0.05, 0.05, 0.05);
 	Program.SendUniform("lightEmissive.color", 0.0, 0.0, 0.0);
@@ -98,7 +156,7 @@ bool init()
 
 	// setup directional light
 	Program.SendUniform("lightDir.direction", 1.0, 0.5, 1.0);
-	Program.SendUniform("lightDir.diffuse", 1.0, 1.0, 1.0);
+	Program.SendUniform("lightDir.diffuse", 0.2, 0.2, 0.2);
 
 	
 	// Initialise the View Matrix (initial position of the camera)
@@ -109,7 +167,7 @@ bool init()
 		vec3(0.0, 1.0, 0.0));
 
 	// setup the screen background colour
-	glClearColor(0.2f, 0.6f, 1.f, 1.0f);   // blue sky background
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);   // blue sky background
 
 	cout << endl;
 	cout << "Use:" << endl;
@@ -141,17 +199,38 @@ void renderScene(mat4& matrixView, float time)
 {
 	mat4 m;
 
+	Program.SendUniform("lightPoint.position", 5.8f, 5.0f, -1.0f);
+	Program.SendUniform("lightPoint.diffuse", 0.2, 0.2, 0.2);
+
 	// setup diffuse material - neutral white
 	Program.SendUniform("materialDiffuse", 1.0, 1.0, 1.0);	// grassy green
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, idTexGrass);
 	// render the terrain
 	m = translate(matrixView, vec3(0, 0, 0));
 	terrain.render(m);
 
+
+	Program.SendUniform("time", time);
+	Program.SendUniform("speedX", 2.0f);
+	Program.SendUniform("speedY", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, idTexRiver);
 	// render the river
 	m = translate(matrixView, vec3(0, 0, 0));
 	river.render(m);
 
+	Program.SendUniform("time", 0);
+	Program.SendUniform("speedX", 0);
+	Program.SendUniform("speedY", 0);
+
+	Program.SendUniform("useNormalMap", true);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, idTexRoad);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, idTexRoadNormal);
 	// render the road
 	m = matrixView;
 	m = translate(m, vec3(5.0f, 0.01f, 0.0f));
@@ -178,10 +257,47 @@ void renderScene(mat4& matrixView, float time)
 	bulb.render(m);
 	Program.SendUniform("lightEmissive.color", 0.0, 0.0, 0.0);
 
+	Program.SendUniform("useNormalMap", true);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, idTexBridge);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, idTexBridgeNormal);
+	Program.SendUniform("materialDiffuse", 1.0, 1.0, 1.0);
+	m = matrixView;
+	//m = rotate(m, radians(180.f), vec3(0.0f, 1.0f, 0.0f));
+	m = translate(m, vec3(4.5f, 1.7f, -5.5f));
+	m = scale(m, vec3(0.3f, 0.3f, 0.3f));
+	bridge.render(m);
+	Program.SendUniform("useNormalMap", false);
+
+
+	mat4 inv = inverse(matrixView);
+	vec3 pos = vec3(inv[3].x, inv[3].y, inv[3].z);
+	float distance = length(pos - vec3(4.7f, 3.3f, -5.5f));
+
+	// calculate and send bone transforms
+	std::vector<float> transforms;
+	
+	if (distance < 5.0f)
+		wizard.ChangeState(CWizardAI::YOU_SHALL_NOT_PASS, time);
+	if (distance > 9.0f)
+		wizard.ChangeState(CWizardAI::IDLE, time);
+	
+	wizard.getAnimData(0, time, transforms);
+	Program.SendUniformMatrixv("bones", (float*)&transforms[0], transforms.size() / 16);
+
+	m = matrixView;
+	//m = rotate(m, radians(180.f), vec3(0.0f, 1.0f, 0.0f));
+	m = translate(m, vec3(4.7f, 3.3f, -5.5f));
+	m = scale(m, vec3(1.0f, 1.0f, 1.0f));
+	wizard.render(m);
+
+
 	// Display debug information: your current coordinates (x, z)
 	// These coordinates are available as inv[3].x, inv[3].z
-	mat4 inv = inverse(matrixView);
-	displayCoords(inv[3].x, inv[3].z);
+	
+	//displayCoords(inv[3].x, inv[3].z);
+	displayCoords(distance, distance);
 }
 
 void render()
